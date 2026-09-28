@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEGUIMIENTO PROYECTOS</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --card-bg: #13192b;
+      --card-border: #232d48;
+      --input-bg: #1a2238;
+      --input-border: #2e3a59;
+      --accent-blue: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-magenta: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-label: #cbd5e1;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-main); padding: 25px; min-height: 100vh; }
+    .app-container { max-width: 1200px; margin: 0 auto; }
+
+    .app-header {
+      background: var(--card-bg); padding: 24px 28px; border-radius: var(--radius);
+      margin-bottom: 25px; position: relative; border: 1px solid transparent;
+      background-clip: padding-box; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+    .app-header::before {
+      content: ''; position: absolute; top: -1px; bottom: -1px; left: -1px; right: -1px;
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.6) 0%, rgba(37, 99, 235, 0.6) 100%);
+      border-radius: calc(var(--radius) + 1px); z-index: -1;
+    }
+
+    .header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px; }
+    .header-branding-left { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+    .app-logo { height: 52px; width: auto; object-fit: contain; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.5)); }
+    .header-titles { display: flex; flex-direction: column; }
+    .header-titles h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #ffffff; }
+    .header-subtitle { font-size: 0.88rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+
+    .sync-status-badge {
+      display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--input-border); padding: 7px 14px; border-radius: 20px; font-size: 0.82rem;
+    }
+    .user-profile-badge {
+      display: flex; align-items: center; gap: 10px; background: var(--input-bg);
+      border: 1px solid var(--input-border); padding: 6px 14px; border-radius: 20px; font-size: 0.82rem;
+    }
+
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background-color: #ef4444; }
+    .status-dot.connected { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
+
+    .main-nav { display: flex; gap: 12px; margin-bottom: 25px; flex-wrap: wrap; }
+    .nav-btn {
+      flex: 1; min-width: 160px; padding: 14px 18px; border: 1px solid var(--card-border);
+      background: var(--card-bg); border-radius: var(--radius); font-size: 0.85rem;
+      font-weight: 700; color: var(--text-label); cursor: pointer; display: flex;
+      align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease;
+      text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none;
+    }
+    .nav-btn:hover { border-color: var(--accent-blue); color: #ffffff; background: var(--input-bg); }
+    .nav-btn.active { background: var(--input-bg); color: #ffffff; border-color: var(--accent-blue); box-shadow: 0 0 12px rgba(37, 99, 235, 0.3); }
+
+    .card {
+      background: var(--card-bg); border-radius: var(--radius); padding: 24px;
+      margin-bottom: 22px; border: 1px solid var(--card-border); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .card-title {
+      font-size: 1rem; font-weight: 700; color: #ffffff; margin-bottom: 20px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      border-bottom: 1px solid var(--card-border); padding-bottom: 12px; text-transform: uppercase;
+    }
+
+    .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label { font-size: 0.78rem; font-weight: 700; margin-bottom: 8px; color: var(--text-label); text-transform: uppercase; }
+    input, select, textarea {
+      padding: 12px 14px; border: 1px solid var(--input-border);
+      border-radius: 6px; font-size: 0.9rem; color: #ffffff; background-color: var(--input-bg); transition: all 0.2s;
+    }
+    input::placeholder, textarea::placeholder { color: #64748b; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); }
+
+    .btn {
+      padding: 8px 16px; border-radius: 6px; border: none; font-weight: 700;
+      font-size: 0.78rem; cursor: pointer; display: inline-flex; align-items: center;
+      justify-content: center; gap: 8px; transition: all 0.2s; text-transform: uppercase;
+    }
+    .btn-primary { background-color: var(--accent-blue); color: white; }
+    .btn-primary:hover { background-color: var(--accent-hover); }
+    .btn-success { background-color: #10b981; color: white; }
+    .btn-success:hover { background-color: #059669; }
+    .btn-danger { background-color: var(--accent-magenta); color: white; }
+    .btn-purple { background-color: #8b5cf6; color: white; }
+    .btn-purple:hover { background-color: #7c3aed; }
+    .btn-gantt { background-color: #059669; color: white; }
+    .btn-gantt:hover { background-color: #047857; }
+    .btn-refresh { background-color: #0f172a; border: 1px solid #2563eb; color: #38bdf8; }
+    .btn-refresh:hover { background-color: #1e293b; color: #60a5fa; border-color: #3b82f6; }
+    .btn-outline { background: transparent; border: 1px solid var(--input-border); color: var(--text-label); }
+    .btn-outline:hover { background: var(--input-bg); color: #ffffff; }
+
+    .search-box { display: flex; gap: 10px; flex-wrap: wrap; }
+    .search-box select { min-width: 200px; }
+    .search-box input { flex: 1; min-width: 200px; }
+
+    .alert-banner {
+      padding: 14px 18px; border-radius: 6px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 0.88rem;
+    }
+    .alert-banner.good { background-color: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .alert-banner.warning { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .alert-banner.danger { background-color: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .project-header-display {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px; background: var(--input-bg); padding: 18px; border-radius: 6px;
+      border: 1px solid var(--input-border); margin-bottom: 20px;
+    }
+
+    .info-block label { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+    .info-block .value { font-size: 0.95rem; font-weight: 700; color: #ffffff; margin-top: 4px; }
+    .info-block.full { grid-column: 1 / -1; }
+
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .badge-plan { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .badge-proceso { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-completado { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-pausado { background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.3); }
+
+    .timeline { position: relative; margin-top: 20px; padding-left: 20px; }
+    .timeline::before { content: ''; position: absolute; left: 7px; top: 5px; bottom: 5px; width: 2px; background: var(--card-border); }
+    .timeline-card { position: relative; margin-bottom: 18px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; padding: 16px; }
+    .timeline-card::before { content: ''; position: absolute; left: -19px; top: 18px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-blue); border: 2px solid var(--card-bg); }
+
+    .disabled-area { opacity: 0.4; pointer-events: none; }
+    .hidden { display: none !important; }
+
+    .results-table {
+      width: 100%; border-collapse: collapse; margin-top: 15px; background: var(--input-bg);
+      border-radius: 6px; overflow: hidden; border: 1px solid var(--input-border);
+    }
+    .results-table th, .results-table td {
+      padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--card-border); font-size: 0.85rem;
+    }
+    .results-table th { background: rgba(255,255,255,0.05); color: var(--text-label); text-transform: uppercase; font-size: 0.75rem; }
+    .results-table tr:hover { background: rgba(37, 99, 235, 0.1); cursor: pointer; }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(11, 15, 25, 0.85); backdrop-filter: blur(5px);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: 25px; width: 100%; max-width: 500px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative;
+    }
+
+    .row-due-tomorrow { background-color: rgba(245, 158, 11, 0.15) !important; }
+    .row-overdue { background-color: rgba(239, 68, 68, 0.15) !important; }
+    .row-completed { opacity: 0.6; text-decoration: line-through; }
+
+    .project-tasks-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 15px; margin-bottom: 25px;
+    }
+    .project-task-box {
+      background: var(--input-bg); border: 1px solid var(--input-border);
+      border-radius: 6px; padding: 15px;
+    }
+    .project-task-box h4 {
+      font-size: 0.85rem; font-weight: 700; text-transform: uppercase;
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+
+    .pdf-gantt-table {
+      width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 8pt;
+    }
+    .pdf-gantt-table th, .pdf-gantt-table td {
+      border: 1px solid #cbd5e1; padding: 5px 8px; text-align: left;
+    }
+    .pdf-gantt-table th { background: #f1f5f9; font-weight: 700; color: #0f172a; }
+
+    .detail-actions-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+    .detail-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+  </style>
+</head>
+<body>
+
+<!-- MODAL VISUALIZADOR DE PDF COSTEO -->
+<div id="costingViewerModal" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width: 900px; width: 95%; height: 85vh; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <h3 style="font-size: 1.1rem; color: #fff; text-transform: uppercase;"><i class="fa-solid fa-file-pdf"></i> Visualización de Documento de Costeo</h3>
+      <button onclick="cerrarVisualizadorCosteo()" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.75rem;"><i class="fa-solid fa-xmark"></i> Cerrar</button>
+    </div>
+    <iframe id="pdfViewerFrame" style="width: 100%; height: 100%; border: 1px solid var(--input-border); border-radius: 6px; background: #0b0f19;"></iframe>
+  </div>
+</div>
+
+<!-- MODAL LOGIN -->
+<div id="loginModal" class="modal-overlay">
+  <div class="modal-card">
+    <div style="text-align:center; margin-bottom:20px;">
+      <img src="./img/logo_precision.png" alt="Logo PRECISION" style="height:48px; margin-bottom:12px;">
+      <h2 style="font-size:1.1rem; color:#fff; text-transform:uppercase;">Acceso al Sistema</h2>
+    </div>
+    <div id="loginErrorAlert" class="alert-banner danger hidden"></div>
+    <form onsubmit="handleInternalLogin(event)">
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>Correo Electrónico *</label>
+        <input type="email" id="loginEmail" required placeholder="admin@precision.cl">
+      </div>
+      <div class="form-group" style="margin-bottom:20px;">
+        <label>Contraseña *</label>
+        <input type="password" id="loginPassword" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión</button>
+    </form>
+  </div>
+</div>
+
+<!-- POPUP: ASIGNAR TAREA PENDIENTE AL GUARDAR NOTA -->
+<div id="pendingTaskPopupModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 style="color:#38bdf8; margin-bottom:15px; font-size:1rem;"><i class="fa-solid fa-list-check"></i> ¿Desea asignar una tarea pendiente?</h3>
+    <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:15px;">Si esta anotación requiere un compromiso con fecha límite, ingrésela a continuación:</p>
+    
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Descripción de la Tarea</label>
+      <textarea id="popupTaskDesc" rows="3" placeholder="Ej: Enviar informe de avance a cliente..."></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label>Fecha Límite</label>
+      <input type="date" id="popupTaskDueDate">
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+      <button class="btn btn-outline" onclick="confirmNoteSave(false)"><i class="fa-solid fa-forward"></i> No, Solo Anotación</button>
+      <button class="btn btn-success" onclick="confirmNoteSave(true)"><i class="fa-solid fa-check"></i> Guardar con Tarea</button>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP: REGISTRO DIRECTO DE TAREA PENDIENTE DESDE DETALLES -->
+<div id="directTaskModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 style="color:#8b5cf6; margin-bottom:15px; font-size:1rem;"><i class="fa-solid fa-tasks"></i> Nueva Tarea Pendiente</h3>
+    <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:15px;">Ingresar tarea directamente para el Proyecto: <strong id="modalDirectTaskProjectDisplay" style="color:#fff;">-</strong></p>
+    
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Descripción de la Tarea *</label>
+      <textarea id="directTaskDesc" rows="3" placeholder="Escriba el detalle del compromiso o tarea..."></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label>Fecha Límite *</label>
+      <input type="date" id="directTaskDueDate">
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+      <button class="btn btn-outline" onclick="document.getElementById('directTaskModal').classList.add('hidden')">Cancelar</button>
+      <button class="btn btn-purple" onclick="guardarTareaDirecta()"><i class="fa-solid fa-floppy-disk"></i> Registrar Tarea</button>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP: ALERTAS AUTOMÁTICAS -->
+<div id="alertDueDateModal" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:600px;">
+    <h3 style="color:#fbbf24; margin-bottom:15px; font-size:1.05rem;"><i class="fa-solid fa-bell"></i> ¡Atención! Tareas Próximas a Vencer</h3>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Las siguientes tareas están programadas para vencer mañana o se encuentran vencidas:</p>
+    
+    <div style="max-height:250px; overflow-y:auto; margin-bottom:15px;">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Proyecto</th>
+            <th>Tarea Pendiente</th>
+            <th>Fecha Límite</th>
+          </tr>
+        </thead>
+        <tbody id="dueAlertTableBody"></tbody>
+      </table>
+    </div>
+
+    <div style="text-align:right;">
+      <button class="btn btn-primary" onclick="document.getElementById('alertDueDateModal').classList.add('hidden')">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-container">
+  <header class="app-header">
+    <div class="header-top">
+      <div class="header-branding-left">
+        <img src="./img/logo_precision.png" alt="Logo PRECISION" class="app-logo">
+        <div class="header-titles">
+          <h1>SEGUIMIENTO PROYECTOS</h1>
+          <div class="header-subtitle">Gestión e integración centralizada de proyectos, servicios y notas de seguimiento.</div>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap:wrap;">
+        <div class="user-profile-badge">
+          <i class="fa-solid fa-user-circle" style="font-size:1.1rem; color:var(--accent-blue);"></i>
+          <span id="currentUserEmailText">Sin sesión</span>
+          <span id="currentUserRoleBadge" class="badge badge-plan">N/A</span>
+          <button onclick="logout()" style="background:none; border:none; color:var(--accent-magenta); cursor:pointer; margin-left:5px;"><i class="fa-solid fa-right-from-bracket"></i></button>
+        </div>
+
+        <div class="sync-status-badge">
+          <div id="statusDot" class="status-dot"></div>
+          <span id="statusText">Verificando Conexión...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div id="dbConnectionErrorBanner" class="alert-banner danger hidden">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <div><strong>Sin conexión a la base de datos SQL del sistema.</strong></div>
+  </div>
+
+  <!-- NAVEGACIÓN PRINCIPAL -->
+  <nav class="main-nav disabled-area" id="mainNav">
+    <button class="nav-btn" onclick="volverAlInicio()" style="background: rgba(37, 99, 235, 0.15); border-color: rgba(37, 99, 235, 0.4); color: #38bdf8;">
+      <i class="fa-solid fa-rotate"></i> Inicio / Refrescar
+    </button>
+    <button id="navBtnConsultar" class="nav-btn active" onclick="switchTab('consultar')"><i class="fa-solid fa-magnifying-glass"></i> Consultar Proyecto</button>
+    <button id="navBtnCrear" class="nav-btn" onclick="switchTab('crear')"><i class="fa-solid fa-plus-circle"></i> Crear/Editar Cabecera</button>
+    <a href="./planificacion.html" target="_blank" class="nav-btn" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399;"><i class="fa-solid fa-chart-gantt"></i> PLANIFICACIÓN OV</a>
+  </nav>
+
+  <!-- SECCIÓN: CREAR/EDITAR CABECERA (CORREGIDA LA FUNCIONALIDAD DEL BOTÓN) -->
+  <section id="tabCrear" class="tab-content hidden">
+    <div class="card">
+      <div class="card-title"><span><i class="fa-solid fa-folder-plus"></i> Crear / Editar Cabecera de Proyecto</span></div>
+      
+      <div style="background: var(--input-bg); padding: 18px; border-radius: 6px; margin-bottom: 20px; border: 1px solid var(--input-border);">
+        <label><i class="fa-solid fa-search"></i> Buscar proyecto existente para editar (ID / Nota de Venta)</label>
+        <div class="search-box" style="margin-top: 6px;">
+          <input type="text" id="editSearchId" placeholder="Ej: OV33432" onkeypress="if(event.key==='Enter') buscarProyectoParaEditar()">
+          <button type="button" class="btn btn-primary" onclick="buscarProyectoParaEditar()"><i class="fa-solid fa-pen-to-square"></i> Cargar Datos para Editar</button>
+        </div>
+      </div>
+
+      <form id="createProjectForm" onsubmit="guardarCabeceraSQL(event)">
+        <div class="grid-form">
+          <div class="form-group">
+            <label>ID / Nota de Venta (OV/NV) *</label>
+            <input type="text" id="formProjId" required placeholder="Ej: OV33432">
+          </div>
+          <div class="form-group">
+            <label>ID HubSpot</label>
+            <input type="text" id="formProjHubspot" placeholder="Ej: 12345678">
+          </div>
+          <div class="form-group">
+            <label>Nombre del Proyecto *</label>
+            <input type="text" id="formProjName" required placeholder="Ej: MIGRACIÓN DE SISTEMA CODELCO">
+          </div>
+          <div class="form-group">
+            <label>Nombre del Cliente *</label>
+            <input type="text" id="formProjClient" required placeholder="Ej: CODELCO CHILE">
+          </div>
+          <div class="form-group">
+            <label>Técnico / Responsable Asignado</label>
+            <input type="text" id="formProjRH" placeholder="Ej: JUAN PÉREZ">
+          </div>
+          <div class="form-group">
+            <label>Fecha Inicio</label>
+            <input type="date" id="formProjStartDate">
+          </div>
+          <div class="form-group">
+            <label>Fecha Término</label>
+            <input type="date" id="formProjEndDate">
+          </div>
+          <div class="form-group">
+            <label>Estado General *</label>
+            <select id="formProjStatus" required>
+              <option value="Planificación" selected>Planificación</option>
+              <option value="En Proceso">En Proceso</option>
+              <option value="Pausado">Pausado</option>
+              <option value="Completado">Completado</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Costeo HH / Detalle de Trabajos</label>
+            <textarea id="formProjCosting" rows="3" placeholder="Ingrese el detalle de HH o trabajos costeados..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Adjuntar PDF de Costeo (Opcional)</label>
+            <input type="file" id="formProjCostingPdf" accept="application/pdf" onchange="convertirCostingPdfABase64(this)">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-success" style="margin-top: 20px;"><i class="fa-solid fa-floppy-disk"></i> Guardar Cabecera de Proyecto</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- SECCIÓN: NUEVA ANOTACIÓN -->
+  <section id="tabAnotacion" class="tab-content hidden">
+    <div class="card">
+      <div class="card-title"><span><i class="fa-solid fa-pen-to-square"></i> Nueva Anotación de Seguimiento</span></div>
+
+      <div style="background: var(--input-bg); padding: 18px; border-radius: 6px; margin-bottom: 20px; border: 1px solid var(--input-border);">
+        <label><i class="fa-solid fa-key"></i> Seleccione el criterio e ingrese el término para validar el proyecto *</label>
+        <div class="search-box">
+          <select id="noteSearchCriteria">
+            <option value="client" selected>Nombre de Cliente</option>
+            <option value="id">ID / Nota de Venta (OV / NV)</option>
+            <option value="hubspot">ID de HubSpot</option>
+          </select>
+          <input type="text" id="noteSearchId" placeholder="Ej: MINERA SAN JOSÉ" onkeypress="if(event.key==='Enter') validarNotaDeVenta()">
+          <button class="btn btn-primary" onclick="validarNotaDeVenta()"><i class="fa-solid fa-shield-halved"></i> Validar / Buscar</button>
+        </div>
+      </div>
+
+      <div id="validationAlert" class="alert-banner hidden"></div>
+
+      <form id="noteForm" onsubmit="prepararGuardadoNota(event)" class="disabled-area" style="margin-bottom: 25px;">
+        <div class="grid-form" style="margin-bottom: 12px;">
+          <div class="form-group">
+            <label><i class="fa-solid fa-envelope"></i> Registrado por (Correo Usuario)</label>
+            <input type="email" id="authorInput" readonly style="background-color: rgba(255,255,255,0.05); cursor: not-allowed; font-weight: 700;" required>
+          </div>
+          <div class="form-group">
+            <label>Actualizar Estado del Proyecto</label>
+            <select id="noteStatus">
+              <option value="Planificación">Planificación</option>
+              <option value="En Proceso">En Proceso</option>
+              <option value="Pausado">Pausado</option>
+              <option value="Completado">Completado</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Detalle del Avance / Anotación de Seguimiento *</label>
+          <textarea id="noteInput" rows="3" required placeholder="Escriba el detalle de la minuta o avance técnico..."></textarea>
+        </div>
+
+        <button type="submit" id="submitNoteBtn" class="btn btn-success" style="margin-top: 15px;" disabled><i class="fa-solid fa-paper-plane"></i> Registrar Anotación</button>
+      </form>
+
+      <div id="existingNotesContainer" class="hidden" style="border-top: 1px dashed var(--card-border); padding-top: 20px;">
+        <h3 style="font-size: 0.88rem; color: var(--text-label); margin-bottom: 12px; font-weight: 700; text-transform: uppercase;"><i class="fa-solid fa-clock-rotate-left"></i> Historial de Anotaciones Existentes</h3>
+        <div id="tabNotesTimeline" class="timeline"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN: CONSULTAR PROYECTO -->
+  <section id="tabConsultar" class="tab-content">
+    
+    <!-- TAREAS PENDIENTES GLOBALES -->
+    <div class="card">
+      <div class="card-title">
+        <span><i class="fa-solid fa-list-check"></i> Control General de Tareas Pendientes (Compromisos)</span>
+        <div>
+          <button class="btn btn-outline" style="padding:4px 10px; font-size:0.75rem;" onclick="toggleHistoryTasks()"><i class="fa-solid fa-history"></i> <span id="toggleHistBtnText">Ver Histórico de Completadas</span></button>
+        </div>
+      </div>
+
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th style="width:40px; text-align:center;">Estado</th>
+            <th>OV / Proyecto</th>
+            <th>Cliente / Proyecto</th>
+            <th>Tarea Pendiente</th>
+            <th>Fecha Límite</th>
+            <th>Registrado Por</th>
+            <th id="thAuditCompleted" class="hidden">Completado Por / Fecha</th>
+          </tr>
+        </thead>
+        <tbody id="pendingTasksTableBody">
+          <tr><td colspan="7" style="text-align:center; padding:15px; color:var(--text-muted);">Cargando tareas pendientes...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- BÚSQUEDA -->
+    <div class="card">
+      <div class="card-title"><span><i class="fa-solid fa-search"></i> Búsqueda de Proyecto</span></div>
+      <div class="search-box">
+        <select id="searchCriteria">
+          <option value="client" selected>Nombre de Cliente</option>
+          <option value="id">ID / Nota de Venta (OV / NV)</option>
+          <option value="hubspot">ID de HubSpot</option>
+        </select>
+        <input type="text" id="searchInput" placeholder="Ej: MINERA SAN JOSÉ" onkeypress="if(event.key==='Enter') buscarProyecto()">
+        <button class="btn btn-primary" onclick="buscarProyecto()"><i class="fa-solid fa-search"></i> Buscar</button>
+      </div>
+    </div>
+
+    <!-- GRILLA 10 ÚLTIMOS PROYECTOS -->
+    <div id="recentProjectsCard" class="card">
+      <div class="card-title"><span><i class="fa-solid fa-clock-rotate-left"></i> Últimos 10 Proyectos con Anotaciones Recientes</span></div>
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>ID / Nota Venta</th>
+            <th>Nombre Proyecto</th>
+            <th>Técnico</th>
+            <th>Fecha Anotación</th>
+            <th>Última Novedad</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="recentProjectsTableBody">
+          <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 15px;">Cargando proyectos recientes...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- DETALLES COMPLETOS DEL PROYECTO SELECCIONADO -->
+    <div id="searchResultsCard" class="card hidden">
+      <div class="card-title">
+        <span><i class="fa-solid fa-folder-open"></i> Detalles del Proyecto</span>
+        
+        <div class="detail-actions-wrapper">
+          <div class="detail-actions-row">
+            <button class="btn btn-purple" onclick="abrirModalTareaDirecta()">
+              <i class="fa-solid fa-list-check"></i> AGREGAR TAREA PENDIENTE
+            </button>
+            <button class="btn btn-success" onclick="irAAgregarAnotacionDirecta()">
+              <i class="fa-solid fa-plus-circle"></i> AGREGAR ANOTACIÓN
+            </button>
+            <button class="btn btn-danger" onclick="downloadReportPDF()">
+              <i class="fa-solid fa-file-pdf"></i> DESCARGAR REPORTE PDF
+            </button>
+          </div>
+          <div class="detail-actions-row" style="margin-top:2px;">
+            <button class="btn btn-gantt" onclick="irAPlanificacionEspecifica()">
+              <i class="fa-solid fa-chart-gantt"></i> IR A PLANIFICACIÓN GANTT
+            </button>
+            <button class="btn btn-refresh" onclick="volverAlInicio()">
+              <i class="fa-solid fa-rotate"></i> INICIO / REFRESCAR
+            </button>
+          </div>
+          <div style="margin-top: 4px;">
+            <span id="noteCountBadge" class="badge badge-plan">0 ANOTACIÓN(ES)</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="daysAlertContainer" class="alert-banner hidden"></div>
+
+      <div class="project-header-display">
+        <div class="info-block"><label>ID / Nota Venta</label><div class="value" id="viewId">-</div></div>
+        <div class="info-block"><label>ID HubSpot</label><div class="value" id="viewHubspotId">-</div></div>
+        <div class="info-block"><label>Nombre Proyecto</label><div class="value" id="viewName">-</div></div>
+        <div class="info-block"><label>Cliente</label><div class="value" id="viewClient">-</div></div>
+        <div class="info-block"><label>Técnico Asignado</label><div class="value" id="viewRH">-</div></div>
+        <div class="info-block"><label>Fecha Inicio</label><div class="value" id="viewStartDate">-</div></div>
+        <div class="info-block"><label>Fecha Término</label><div class="value" id="viewEndDate">-</div></div>
+        <div class="info-block"><label>Estado General</label><div class="value" id="viewStatus">-</div></div>
+        <div class="info-block full">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label><i class="fa-solid fa-calculator"></i> Costeo (HH - Detalle de Trabajos)</label>
+            <button id="viewDetailCostingPdfBtn" class="btn btn-primary hidden" style="padding: 4px 10px; font-size: 0.72rem;" onclick="visualizarCosteoProcesado()">
+              <i class="fa-solid fa-file-pdf"></i> Visualizar PDF Costeo
+            </button>
+          </div>
+          <div class="value" id="viewCosting" style="white-space: pre-wrap; font-weight: normal; font-size: 0.9rem; line-height: 1.4; color: #cbd5e1; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; border: 1px solid var(--card-border);">-</div>
+        </div>
+      </div>
+
+      <h3 style="font-size: 0.88rem; color: var(--text-label); margin-bottom: 12px; font-weight: 700; text-transform: uppercase;">
+        <i class="fa-solid fa-tasks"></i> Tareas del Proyecto (Pendientes y Completadas)
+      </h3>
+      
+      <div class="project-tasks-grid">
+        <div class="project-task-box">
+          <h4 style="color: #fbbf24;"><i class="fa-solid fa-clock-rotate-left"></i> Tareas Pendientes del Proyecto</h4>
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th style="width:30px;">✓</th>
+                <th>Descripción Tarea</th>
+                <th>Fecha Límite</th>
+              </tr>
+            </thead>
+            <tbody id="projectPendingTasksBody">
+              <tr><td colspan="3" style="text-align:center; padding:10px; color:var(--text-muted);">Sin tareas pendientes.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="project-task-box">
+          <h4 style="color: #34d399;"><i class="fa-solid fa-check-double"></i> Tareas Completadas del Proyecto</h4>
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th style="width:30px;">✓</th>
+                <th>Descripción Tarea</th>
+                <th>Completada Por / Fecha</th>
+              </tr>
+            </thead>
+            <tbody id="projectCompletedTasksBody">
+              <tr><td colspan="3" style="text-align:center; padding:10px; color:var(--text-muted);">Sin tareas completadas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <h3 style="font-size: 0.88rem; color: var(--text-label); margin-bottom: 12px; font-weight: 700; text-transform: uppercase;">
+        <i class="fa-solid fa-clock-rotate-left"></i> Historial de Anotaciones de Seguimiento (Orden Cronológico)
+      </h3>
+      <div id="timelineContainer" class="timeline"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- PLANTILLAS DE IMPRESIÓN PDF -->
+<div style="position: absolute; left: -9999px; top: -9999px;">
+  <div id="pdfPrintTemplate" style="width:750px; padding:25px; background:#ffffff; color:#1e293b; font-family:'Segoe UI', Arial, sans-serif; font-size:11px; border:1px solid #cbd5e1;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #2563eb; padding-bottom:12px; margin-bottom:15px;">
+      <div>
+        <img src="./img/logo_precision.png" style="height:38px; width:auto; margin-bottom:4px;" alt="PRECISION">
+        <div style="font-size:8.5pt; color:#64748b;">800 470 111 - servicioalcliente@precision.tech</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:14pt; font-weight:900; color:#0f172a; letter-spacing:0.5px; text-transform:uppercase;">INFORME</div>
+        <div style="font-size:9.5pt; font-weight:700; color:#2563eb;">Nota Venta | <span id="pdfId" style="color:#0f172a;">-</span></div>
+      </div>
+    </div>
+
+    <table style="width:100%; border-collapse:collapse; margin-bottom:15px; border:1px solid #94a3b8;">
+      <tbody>
+        <tr>
+          <td style="width:18%; background:#f1f5f9; font-weight:700; border:1px solid #cbd5e1; padding:5px 8px;">Cliente</td>
+          <td style="width:32%; border:1px solid #cbd5e1; padding:5px 8px; font-weight:600;" id="pdfClient">-</td>
+          <td style="width:18%; background:#f1f5f9; font-weight:700; border:1px solid #cbd5e1; padding:5px 8px;">ID HubSpot</td>
+          <td style="width:32%; border:1px solid #cbd5e1; padding:5px 8px;" id="pdfHubspot">-</td>
+        </tr>
+        <tr>
+          <td style="background:#f1f5f9; font-weight:700; border:1px solid #cbd5e1; padding:5px 8px;">Nombre Proyecto</td>
+          <td style="border:1px solid #cbd5e1; padding:5px 8px; font-weight:600;" id="pdfName">-</td>
+          <td style="background:#f1f5f9; font-weight:700; border:1px solid #cbd5e1; padding:5px 8px;">Técnico Asignado</td>
+          <td style="border:1px solid #cbd5e1; padding:5px 8px;" id="pdfRH">-</td>
+        </tr>
+        <tr>
+          <td style="background:#f1f5f9; font-weight:700; border:1px solid #cbd5e1; padding:5px 8px;">Fecha Inicio</td>
+          <td style="border:1px solid #cbd5e1; padding:5px 8px;" id="pdfStartDate">-</td>
+          <td style="background:#f1f5f9; font-weight:700; border:1px solid #cbd5e1; padding:5px 8px;">Fecha Término</td>
+          <td style="border:1px solid #cbd5e1; padding:5px 8px;" id="pdfEndDate">-</td>
+        </tr>
+        <tr>
+          <td style="background:#f1f5f9; font-weight:700; border:1px solid #cbd5e1; padding:5px 8px;">Estado General</td>
+          <td style="border:1px solid #cbd5e1; padding:5px 8px; font-weight:700; color:#2563eb;" id="pdfStatus">-</td>
+          <td style="background:#f1f5f9; font-weight:700; border:1px solid #cbd5e1; padding:5px 8px;">Fecha Emisión</td>
+          <td style="border:1px solid #cbd5e1; padding:5px 8px;" id="pdfPrintDate">-</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="background:#0f172a; color:#ffffff; padding:6px 10px; font-weight:800; font-size:9.5pt; text-transform:uppercase; margin-bottom:0;">
+      DESCRIPCIÓN Y COSTEO DEL TRABAJO (HH)
+    </div>
+    <div id="pdfCosting" style="border:1px solid #94a3b8; border-top:none; padding:10px; white-space:pre-wrap; min-height:45px; background:#f8fafc; font-size:9pt; color:#334155; margin-bottom:15px;">-</div>
+
+    <div style="background:#0f172a; color:#ffffff; padding:6px 10px; font-weight:800; font-size:9.5pt; text-transform:uppercase; margin-bottom:0;">
+      TAREAS Y COMPROMISOS REGISTRADOS
+    </div>
+    <div style="border:1px solid #94a3b8; border-top:none; padding:8px; margin-bottom:15px; background:#f8fafc;">
+      <table style="width:100%; border-collapse:collapse; border:1px solid #cbd5e1;">
+        <thead>
+          <tr style="background:#e2e8f0; text-align:left; font-size:8pt;">
+            <th style="padding:4px 6px; border:1px solid #cbd5e1; width:90px;">ESTADO</th>
+            <th style="padding:4px 6px; border:1px solid #cbd5e1;">DESCRIPCIÓN TAREA</th>
+            <th style="padding:4px 6px; border:1px solid #cbd5e1; width:110px;">FECHA LÍMITE</th>
+          </tr>
+        </thead>
+        <tbody id="pdfTasksContainer"></tbody>
+      </table>
+    </div>
+
+    <div style="background:#0f172a; color:#ffffff; padding:6px 10px; font-weight:800; font-size:9.5pt; text-transform:uppercase; margin-bottom:0;">
+      HISTORIAL DE ANOTACIONES Y SEGUIMIENTO TÉCNICO
+    </div>
+    <div id="pdfNotesContainer" style="border:1px solid #94a3b8; border-top:none; padding:10px; background:#f8fafc; margin-bottom:20px;"></div>
+
+    <div style="margin-top:30px; border-top:1px solid #cbd5e1; padding-top:12px; display:flex; justify-content:space-between; font-size:8pt; color:#64748b;">
+      <div>PRECISION SOPORTE SOFTWARE - Documento Generado Automáticamente</div>
+      <div>Página 1</div>
+    </div>
+  </div>
+</div>
+
+<div style="position: absolute; left: -9999px; top: -9999px;">
+  <div id="pdfPrintGanttTemplate" style="width:1060px; padding:25px; background:#ffffff; color:#1e293b; font-family:'Segoe UI', Arial, sans-serif; font-size:11px; border:1px solid #cbd5e1;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #2563eb; padding-bottom:12px; margin-bottom:15px;">
+      <div>
+        <img src="./img/logo_precision.png" style="height:38px; width:auto; margin-bottom:4px;" alt="PRECISION">
+        <div style="font-size:8.5pt; color:#64748b;">CRONOGRAMA Y PLANIFICACIÓN DE TRABAJO - CARTA GANTT</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:14pt; font-weight:900; color:#0f172a; letter-spacing:0.5px; text-transform:uppercase;">INFORME DE PLANIFICACIÓN</div>
+        <div style="font-size:9.5pt; font-weight:700; color:#2563eb;">Nota Venta | <span id="pdfGanttId" style="color:#0f172a;">-</span></div>
+      </div>
+    </div>
+
+    <div style="background:#0f172a; color:#ffffff; padding:6px 10px; font-weight:800; font-size:9.5pt; text-transform:uppercase; margin-bottom:10px;">
+      PLANIFICACIÓN DETALLADA Y CRONOGRAMA DE ACTIVIDADES
+    </div>
+
+    <div id="pdfGanttContainer" style="margin-bottom:20px;"></div>
+
+    <div style="margin-top:30px; border-top:1px solid #cbd5e1; padding-top:12px; display:flex; justify-content:space-between; font-size:8pt; color:#64748b;">
+      <div>PRECISION SOPORTE SOFTWARE - Documento Generado Automáticamente</div>
+      <div>Página 2</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const HOSTNAME = window.location.hostname;
+  const API_PORT = '3000';
+  const API_HOST = (HOSTNAME === 'localhost' || HOSTNAME === '127.0.0.1') ? 'localhost' : HOSTNAME;
+  const API_BASE_URL = `https://script.google.com/macros/s/AKfycbzQuakHRsLiZjd2who4SlJX9uw1qngJ4GtdUqvzVpcoSeE9IRhdEvC1wneUkyByEjlODg/exec`;
+
+  let currentProjectCode = null;
+  let onlineProjectsDB = {};
+  let globalPendingTasks = [];
+  let showCompletedTasksHistory = false;
+  let isConnectedToSQL = false;
+  let currentUserSession = null;
+  let currentCostingPdfData = null;
+  let verifiedNoteProjectCode = null;
+  let pendingNotePayload = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    checkActiveSession();
+    syncFromSqlServer();
+    cargarTareasPendientesSQL();
+  });
+
+  function checkActiveSession() {
+    const savedSession = sessionStorage.getItem('active_user_session') || localStorage.getItem('active_user_session');
+    if (savedSession) {
+      currentUserSession = JSON.parse(savedSession);
+      updateUserInterfaceRole();
+    } else {
+      document.getElementById('loginModal').classList.remove('hidden');
+    }
+  }
+
+  async function handleInternalLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const pass = document.getElementById('loginPassword').value;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass })
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        currentUserSession = result.user;
+        sessionStorage.setItem('active_user_session', JSON.stringify(currentUserSession));
+        document.getElementById('loginModal').classList.add('hidden');
+        updateUserInterfaceRole();
+      } else {
+        alert(result.message || 'Credenciales inválidas.');
+      }
+    } catch (err) { alert('Error de red al conectar con SQL.'); }
+  }
+
+  function updateUserInterfaceRole() {
+    if (!currentUserSession) return;
+    document.getElementById('currentUserEmailText').textContent = currentUserSession.email;
+    document.getElementById('authorInput').value = currentUserSession.email;
+    document.getElementById('currentUserRoleBadge').textContent = currentUserSession.role;
+  }
+
+  function updateSyncBadge(isConnected) {
+    isConnectedToSQL = isConnected;
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    if (isConnected) {
+      dot.classList.add('connected');
+      text.textContent = 'SQL Server Conectado';
+      document.getElementById('mainNav').classList.remove('disabled-area');
+    } else {
+      dot.classList.remove('connected');
+      text.textContent = 'Sin Conexión SQL';
+      document.getElementById('mainNav').classList.add('disabled-area');
+    }
+  }
+
+  // NAVEGACIÓN Y CONMUTACIÓN DE PESTAÑAS (CORREGIDO PESTAÑA 'crear')
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+    if (tabName === 'consultar') {
+      document.getElementById('tabConsultar').classList.remove('hidden');
+      document.getElementById('navBtnConsultar').classList.add('active');
+    } else if (tabName === 'crear') {
+      document.getElementById('tabCrear').classList.remove('hidden');
+      document.getElementById('navBtnCrear').classList.add('active');
+    } else if (tabName === 'anotacion') {
+      document.getElementById('tabAnotacion').classList.remove('hidden');
+    }
+  }
+
+  async function volverAlInicio() {
+    currentProjectCode = null;
+    verifiedNoteProjectCode = null;
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchResultsCard').classList.add('hidden');
+    
+    switchTab('consultar');
+    await syncFromSqlServer();
+    await cargarTareasPendientesSQL();
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // LÓGICA CREAR / EDITAR CABECERA DE PROYECTO
+  function buscarProyectoParaEditar() {
+    const editId = document.getElementById('editSearchId').value.trim().toUpperCase();
+    if (!editId) return alert('Ingrese la OV / Nota de Venta.');
+
+    const proj = onlineProjectsDB[editId] || Object.values(onlineProjectsDB).find(p => p.id.toUpperCase() === editId);
+    if (proj) {
+      document.getElementById('formProjId').value = proj.id;
+      document.getElementById('formProjHubspot').value = proj.hubspotId || '';
+      document.getElementById('formProjName').value = proj.name || '';
+      document.getElementById('formProjClient').value = proj.client || '';
+      document.getElementById('formProjRH').value = proj.humanResources || '';
+      document.getElementById('formProjStartDate').value = proj.startDate || '';
+      document.getElementById('formProjEndDate').value = proj.endDate || '';
+      document.getElementById('formProjStatus').value = proj.status || 'Planificación';
+      document.getElementById('formProjCosting').value = proj.costing || '';
+      currentCostingPdfData = proj.costingPdf || null;
+      alert(`Proyecto ${proj.id} cargado en el formulario.`);
+    } else {
+      alert(`No se encontró el proyecto ${editId} en la base de datos.`);
+    }
+  }
+
+  function convertirCostingPdfABase64(inputElem) {
+    const file = inputElem.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      currentCostingPdfData = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function guardarCabeceraSQL(e) {
+    e.preventDefault();
+    if (!currentUserSession) return alert('Sesión no válida.');
+
+    const project = {
+      id: document.getElementById('formProjId').value.trim().toUpperCase(),
+      hubspotId: document.getElementById('formProjHubspot').value.trim() || null,
+      name: document.getElementById('formProjName').value.trim(),
+      client: document.getElementById('formProjClient').value.trim(),
+      humanResources: document.getElementById('formProjRH').value.trim() || null,
+      startDate: document.getElementById('formProjStartDate').value || null,
+      endDate: document.getElementById('formProjEndDate').value || null,
+      status: document.getElementById('formProjStatus').value,
+      costing: document.getElementById('formProjCosting').value.trim() || null,
+      costingPdf: currentCostingPdfData || null,
+      registeredBy: currentUserSession.email
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/save-project`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project })
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        alert('¡Cabecera de proyecto guardada exitosamente!');
+        currentProjectCode = project.id;
+        await syncFromSqlServer();
+        switchTab('consultar');
+      } else {
+        alert(`Error al guardar: ${resData.error || resData.message}`);
+      }
+    } catch (err) {
+      alert('Error de conexión guardando el proyecto.');
+    }
+  }
+
+  async function syncFromSqlServer() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/projects`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.db) {
+          onlineProjectsDB = result.db;
+          updateSyncBadge(true);
+          renderRecentProjectsTable();
+          
+          if (currentProjectCode && onlineProjectsDB[currentProjectCode]) {
+            renderProyectoUnico(onlineProjectsDB[currentProjectCode]);
+          }
+        }
+      } else { updateSyncBadge(false); }
+    } catch (err) { updateSyncBadge(false); }
+  }
+
+  async function irAPlanificacionEspecifica() {
+    if (!currentProjectCode) return alert('Seleccione o consulte un proyecto primero.');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/project-plan/${currentProjectCode}`);
+      const data = await res.json();
+
+      if (data.success) {
+        const isHistorical = data.isHistorical;
+        const targetPage = isHistorical ? 'historico.html' : 'planificacion.html';
+        window.open(`${targetPage}?search=${encodeURIComponent(currentProjectCode)}`, '_blank');
+      } else {
+        window.open(`planificacion.html?search=${encodeURIComponent(currentProjectCode)}`, '_blank');
+      }
+    } catch (e) {
+      window.open(`planificacion.html?search=${encodeURIComponent(currentProjectCode)}`, '_blank');
+    }
+  }
+
+  function abrirModalTareaDirecta() {
+    if (!currentProjectCode || !onlineProjectsDB[currentProjectCode]) {
+      return alert('Seleccione o consulte un proyecto primero para asociar la tarea.');
+    }
+    const proj = onlineProjectsDB[currentProjectCode];
+    document.getElementById('modalDirectTaskProjectDisplay').textContent = `${proj.name} (${proj.id})`;
+    document.getElementById('directTaskDesc').value = '';
+    document.getElementById('directTaskDueDate').value = '';
+    document.getElementById('directTaskModal').classList.remove('hidden');
+  }
+
+  async function guardarTareaDirecta() {
+    const desc = document.getElementById('directTaskDesc').value.trim();
+    const dueDate = document.getElementById('directTaskDueDate').value;
+
+    if (!desc || !dueDate) {
+      return alert('Ingrese la descripción y la fecha límite de la tarea.');
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/add-direct-task`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: currentProjectCode,
+          description: desc,
+          dueDate: dueDate,
+          userEmail: currentUserSession ? currentUserSession.email : 'Sistema'
+        })
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        alert('¡Tarea pendiente asignada exitosamente al proyecto!');
+        document.getElementById('directTaskModal').classList.add('hidden');
+        await syncFromSqlServer();
+        await cargarTareasPendientesSQL();
+      } else {
+        alert(`Error al registrar la tarea: ${resData.message || 'Error desconocido'}`);
+      }
+    } catch (err) {
+      alert('Error de conexión guardando la tarea.');
+    }
+  }
+
+  async function cargarTareasPendientesSQL() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/pending-tasks`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && Array.isArray(result.tasks)) {
+          globalPendingTasks = result.tasks;
+          renderPendingTasksTable();
+          checkTomorrowDueAlerts();
+          if (currentProjectCode) {
+            renderProjectSpecificTasks(currentProjectCode);
+          }
+        }
+      }
+    } catch (err) { console.error('Error cargando tareas:', err); }
+  }
+
+  function renderPendingTasksTable() {
+    const tbody = document.getElementById('pendingTasksTableBody');
+    const thAudit = document.getElementById('thAuditCompleted');
+    tbody.innerHTML = '';
+
+    if (showCompletedTasksHistory) {
+      thAudit.classList.remove('hidden');
+    } else {
+      thAudit.classList.add('hidden');
+    }
+
+    const filtered = globalPendingTasks.filter(t => showCompletedTasksHistory ? t.completed : !t.completed);
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${showCompletedTasksHistory ? '7' : '6'}" style="text-align:center; padding:15px; color:var(--text-muted);">No hay tareas ${showCompletedTasksHistory ? 'completadas en el historial' : 'pendientes'}.</td></tr>`;
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+    filtered.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
+      
+      if (!t.completed) {
+        if (t.dueDate === tomorrowStr) tr.className = 'row-due-tomorrow';
+        else if (t.dueDate < todayStr) tr.className = 'row-overdue';
+      } else {
+        tr.className = 'row-completed';
+      }
+
+      tr.onclick = (e) => {
+        if (e.target.tagName.toLowerCase() !== 'input') {
+          seleccionarProyectoPorId(t.projectId);
+        }
+      };
+
+      let auditTd = showCompletedTasksHistory ? `<td><small>${escapeHTML(t.completedBy || '-')}</small><br><small style="color:var(--text-muted);">${t.completedDate || ''}</small></td>` : '';
+
+      tr.innerHTML = `
+        <td style="text-align:center;" onclick="event.stopPropagation();">
+          <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTaskComplete(${t.id}, this.checked)" style="cursor:pointer;">
+        </td>
+        <td><strong>${escapeHTML(t.projectId)}</strong></td>
+        <td><strong>${escapeHTML(t.client)}</strong><br><small style="color:var(--text-muted);">${escapeHTML(t.projectName)}</small></td>
+        <td>${escapeHTML(t.description)}</td>
+        <td><strong>${t.dueDate}</strong></td>
+        <td><small>${escapeHTML(t.registeredBy || 'Sistema')}</small></td>
+        ${auditTd}
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function seleccionarProyectoPorId(projectId) {
+    const projKey = String(projectId).trim();
+    if (onlineProjectsDB[projKey]) {
+      renderProyectoUnico(onlineProjectsDB[projKey]);
+    } else {
+      const allProjects = Object.values(onlineProjectsDB);
+      const match = allProjects.find(p => String(p.id).trim() === projKey);
+      if (match) {
+        renderProyectoUnico(match);
+      } else {
+        alert(`No se encontraron los detalles registrados para el proyecto ID: ${projKey}`);
+      }
+    }
+  }
+
+  function renderProjectSpecificTasks(projectId) {
+    const pendingBody = document.getElementById('projectPendingTasksBody');
+    const completedBody = document.getElementById('projectCompletedTasksBody');
+    pendingBody.innerHTML = '';
+    completedBody.innerHTML = '';
+
+    const projStr = String(projectId).trim();
+    const projTasks = globalPendingTasks.filter(t => String(t.projectId).trim() === projStr);
+
+    const pending = projTasks.filter(t => !t.completed);
+    const completed = projTasks.filter(t => t.completed);
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+    if (pending.length === 0) {
+      pendingBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:10px; color:var(--text-muted);">Sin tareas pendientes en este proyecto.</td></tr>';
+    } else {
+      pending.forEach(t => {
+        const tr = document.createElement('tr');
+        if (t.dueDate === tomorrowStr) tr.className = 'row-due-tomorrow';
+        else if (t.dueDate < todayStr) tr.className = 'row-overdue';
+
+        tr.innerHTML = `
+          <td style="text-align:center;"><input type="checkbox" onchange="toggleTaskComplete(${t.id}, true)" style="cursor:pointer;"></td>
+          <td>${escapeHTML(t.description)}</td>
+          <td><strong>${t.dueDate}</strong></td>
+        `;
+        pendingBody.appendChild(tr);
+      });
+    }
+
+    if (completed.length === 0) {
+      completedBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:10px; color:var(--text-muted);">Sin tareas completadas.</td></tr>';
+    } else {
+      completed.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.className = 'row-completed';
+        tr.innerHTML = `
+          <td style="text-align:center;"><input type="checkbox" checked onchange="toggleTaskComplete(${t.id}, false)" style="cursor:pointer;"></td>
+          <td>${escapeHTML(t.description)}</td>
+          <td><small>${escapeHTML(t.completedBy || 'Sistema')}</small><br><small style="color:var(--text-muted);">${t.completedDate || ''}</small></td>
+        `;
+        completedBody.appendChild(tr);
+      });
+    }
+  }
+
+  async function toggleTaskComplete(taskId, isChecked) {
+    if (!currentUserSession) return alert('Sesión no válida.');
+    try {
+      const response = await fetch(`${API_BASE_URL}/complete-task`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, completed: isChecked, userEmail: currentUserSession.email })
+      });
+      if (response.ok) {
+        await cargarTareasPendientesSQL();
+      }
+    } catch (err) { alert('Error de red al actualizar tarea.'); }
+  }
+
+  function toggleHistoryTasks() {
+    showCompletedTasksHistory = !showCompletedTasksHistory;
+    document.getElementById('toggleHistBtnText').textContent = showCompletedTasksHistory ? 'Ver Solo Pendientes' : 'Ver Histórico de Completadas';
+    renderPendingTasksTable();
+  }
+
+  function checkTomorrowDueAlerts() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const urgentTasks = globalPendingTasks.filter(t => !t.completed && (t.dueDate === tomorrowStr || t.dueDate <= todayStr));
+
+    if (urgentTasks.length > 0 && !sessionStorage.getItem('alert_due_shown')) {
+      const tbody = document.getElementById('dueAlertTableBody');
+      tbody.innerHTML = '';
+      urgentTasks.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${escapeHTML(t.projectId)}</strong> - ${escapeHTML(t.client)}</td>
+          <td>${escapeHTML(t.description)}</td>
+          <td><strong style="color:${t.dueDate <= todayStr ? '#f87171' : '#fbbf24'};">${t.dueDate}</strong></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('alertDueDateModal').classList.remove('hidden');
+      sessionStorage.setItem('alert_due_shown', 'true');
+    }
+  }
+
+  function prepararGuardadoNota(e) {
+    e.preventDefault();
+    if (!verifiedNoteProjectCode) return;
+    const text = document.getElementById('noteInput').value.trim();
+    const status = document.getElementById('noteStatus').value;
+    if (!text) return;
+
+    pendingNotePayload = {
+      note: { projectId: verifiedNoteProjectCode, author: currentUserSession.email, text, status }
+    };
+    document.getElementById('popupTaskDesc').value = '';
+    document.getElementById('popupTaskDueDate').value = '';
+    document.getElementById('pendingTaskPopupModal').classList.remove('hidden');
+  }
+
+  async function confirmNoteSave(includeTask) {
+    document.getElementById('pendingTaskPopupModal').classList.add('hidden');
+    if (!pendingNotePayload) return;
+
+    if (includeTask) {
+      const desc = document.getElementById('popupTaskDesc').value.trim();
+      const dueDate = document.getElementById('popupTaskDueDate').value;
+      if (!desc || !dueDate) {
+        alert('Debe ingresar descripción y fecha límite.');
+        document.getElementById('pendingTaskPopupModal').classList.remove('hidden');
+        return;
+      }
+      pendingNotePayload.pendingTask = { description: desc, dueDate };
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/add-note`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pendingNotePayload)
+      });
+      if (response.ok) {
+        alert('¡Anotación registrada con éxito!');
+        document.getElementById('noteInput').value = '';
+        currentProjectCode = verifiedNoteProjectCode;
+        pendingNotePayload = null;
+        
+        await syncFromSqlServer();
+        await cargarTareasPendientesSQL();
+      }
+    } catch (err) { alert('Error de red guardando nota.'); }
+  }
+
+  function renderRecentProjectsTable() {
+    const tbody = document.getElementById('recentProjectsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    const allProjects = Object.values(onlineProjectsDB);
+    const projectsWithNotes = [];
+
+    allProjects.forEach(p => {
+      if (Array.isArray(p.notes) && p.notes.length > 0) {
+        const sortedNotes = [...p.notes].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        projectsWithNotes.push({
+          project: p,
+          lastNoteDate: new Date(sortedNotes[0].timestamp),
+          lastNoteText: sortedNotes[0].text || ''
+        });
+      }
+    });
+
+    projectsWithNotes.sort((a, b) => b.lastNoteDate - a.lastNoteDate);
+    const top10 = projectsWithNotes.slice(0, 10);
+
+    top10.forEach(item => {
+      const p = item.project;
+      const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
+      tr.onclick = () => renderProyectoUnico(p);
+
+      let formattedDate = item.lastNoteDate.toLocaleString();
+      let shortNoteText = item.lastNoteText.length > 80 ? item.lastNoteText.substring(0, 80) + '...' : item.lastNoteText;
+
+      tr.innerHTML = `
+        <td><strong>${escapeHTML(p.client || 'N/A')}</strong></td>
+        <td>${escapeHTML(p.id)}</td>
+        <td>${escapeHTML(p.name || '-')}</td>
+        <td>${escapeHTML(p.humanResources || '-')}</td>
+        <td><small style="color:var(--text-muted);"><i class="fa-regular fa-clock"></i> ${formattedDate}</small></td>
+        <td title="${escapeHTML(item.lastNoteText)}"><span style="color:#e2e8f0; font-size:0.8rem;"><i class="fa-solid fa-comment-dots" style="color:var(--accent-blue); margin-right:4px;"></i>${escapeHTML(shortNoteText)}</span></td>
+        <td><span class="badge ${getBadgeClass(p.status)}">${p.status}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderProyectoUnico(project) {
+    if (!project) return;
+    currentProjectCode = project.id;
+
+    document.getElementById('viewId').textContent = project.id;
+    document.getElementById('viewHubspotId').textContent = project.hubspotId || 'N/A';
+    document.getElementById('viewName').textContent = project.name || 'Sin especificar';
+    document.getElementById('viewClient').textContent = project.client || 'N/A';
+    document.getElementById('viewRH').textContent = project.humanResources || 'Sin técnico asignado';
+    document.getElementById('viewStartDate').textContent = project.startDate || 'No definida';
+    document.getElementById('viewEndDate').textContent = project.endDate || 'No definida';
+    document.getElementById('viewStatus').innerHTML = `<span class="badge ${getBadgeClass(project.status)}">${project.status}</span>`;
+    document.getElementById('viewCosting').textContent = project.costing || 'Sin información de costeo registrada.';
+
+    const costingPdfBtn = document.getElementById('viewDetailCostingPdfBtn');
+    if (project.costingPdf) {
+      costingPdfBtn.classList.remove('hidden');
+    } else {
+      costingPdfBtn.classList.add('hidden');
+    }
+
+    calcularDiasRestantes(project.endDate, project.status);
+    renderProjectSpecificTasks(project.id);
+    renderNotas(project.notes, 'timelineContainer');
+
+    document.getElementById('searchResultsCard').classList.remove('hidden');
+    document.getElementById('searchResultsCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function calcularDiasRestantes(endDateStr, status) {
+    const alertBox = document.getElementById('daysAlertContainer');
+    if (!endDateStr || status === 'Completado') {
+      alertBox.classList.add('hidden');
+      return;
+    }
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const endDate = new Date(endDateStr); endDate.setHours(0,0,0,0);
+    const diffDays = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+    alertBox.classList.remove('hidden', 'good', 'warning', 'danger');
+
+    if (diffDays > 7) {
+      alertBox.classList.add('good');
+      alertBox.innerHTML = `<i class="fa-solid fa-clock"></i> Faltan <strong>${diffDays} días</strong> para la entrega (${endDateStr}).`;
+    } else if (diffDays >= 0) {
+      alertBox.classList.add('warning');
+      alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Quedan <strong>${diffDays} días</strong> (${endDateStr}).`;
+    } else {
+      alertBox.classList.add('danger');
+      alertBox.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Venció hace <strong>${Math.abs(diffDays)} días</strong> (${endDateStr}).`;
+    }
+  }
+
+  function renderNotas(notes, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (containerId === 'timelineContainer') {
+      const badge = document.getElementById('noteCountBadge');
+      if (badge) badge.textContent = notes ? `${notes.length} ANOTACIÓN(ES)` : '0 ANOTACIÓN(ES)';
+    }
+    container.innerHTML = '';
+    if (!notes || notes.length === 0) {
+      container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Sin anotaciones registradas.</div>';
+      return;
+    }
+
+    const sorted = [...notes].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    sorted.forEach(n => {
+      let formattedDate = n.timestamp;
+      if (n.timestamp) {
+        const d = new Date(n.timestamp);
+        if (!isNaN(d.getTime())) formattedDate = d.toLocaleString();
+      }
+
+      const card = document.createElement('div');
+      card.className = 'timeline-card';
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <strong style="color:var(--accent-blue);"><i class="fa-solid fa-envelope"></i> ${escapeHTML(n.author)}</strong>
+          <small style="color:var(--text-muted);"><i class="fa-regular fa-clock"></i> ${formattedDate}</small>
+        </div>
+        <div style="white-space:pre-wrap; line-height:1.4; color:#e2e8f0;">${escapeHTML(n.text)}</div>
+        <div style="margin-top:8px;"><span class="badge ${getBadgeClass(n.status)}">${n.status}</span></div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  async function downloadReportPDF() {
+    if (!currentProjectCode) return alert('Consulte un proyecto para generar el reporte PDF.');
+    const p = onlineProjectsDB[currentProjectCode]; if (!p) return;
+
+    document.getElementById('pdfId').textContent = p.id;
+    document.getElementById('pdfHubspot').textContent = p.hubspotId || 'N/A';
+    document.getElementById('pdfClient').textContent = p.client || 'N/A';
+    document.getElementById('pdfName').textContent = p.name || 'Sin especificar';
+    document.getElementById('pdfRH').textContent = p.humanResources || 'Sin técnico asignado';
+    document.getElementById('pdfStartDate').textContent = p.startDate || 'No definida';
+    document.getElementById('pdfEndDate').textContent = p.endDate || 'No definida';
+    document.getElementById('pdfStatus').textContent = p.status || 'En Proceso';
+    document.getElementById('pdfPrintDate').textContent = new Date().toLocaleDateString();
+    document.getElementById('pdfCosting').textContent = p.costing || 'Sin información de costeo/HH registrada.';
+
+    const pdfTasksContainer = document.getElementById('pdfTasksContainer');
+    pdfTasksContainer.innerHTML = '';
+    const projStr = String(p.id).trim();
+    const projTasks = globalPendingTasks.filter(t => String(t.projectId).trim() === projStr);
+
+    if (projTasks.length > 0) {
+      projTasks.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.style.fontSize = '8pt';
+        tr.innerHTML = `
+          <td style="padding:4px 6px; border:1px solid #cbd5e1; font-weight:bold; color:${t.completed ? '#059669' : '#d97706'};">${t.completed ? 'COMPLETADA' : 'PENDIENTE'}</td>
+          <td style="padding:4px 6px; border:1px solid #cbd5e1;">${escapeHTML(t.description)}</td>
+          <td style="padding:4px 6px; border:1px solid #cbd5e1;">${t.dueDate}</td>
+        `;
+        pdfTasksContainer.appendChild(tr);
+      });
+    } else {
+      pdfTasksContainer.innerHTML = '<tr><td colspan="3" style="padding:8px; text-align:center; color:#64748b;">Sin tareas o compromisos asociados a este proyecto.</td></tr>';
+    }
+
+    const pdfNotes = document.getElementById('pdfNotesContainer');
+    pdfNotes.innerHTML = '';
+
+    if (p.notes && p.notes.length > 0) {
+      const sorted = [...p.notes].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      sorted.forEach(n => {
+        let formattedDate = n.timestamp;
+        if (n.timestamp) {
+          const d = new Date(n.timestamp);
+          if (!isNaN(d.getTime())) formattedDate = d.toLocaleString();
+        }
+        const item = document.createElement('div');
+        item.style.cssText = 'border-bottom:1px solid #e2e8f0; padding:6px 0; margin-bottom:4px; font-size:8.5pt;';
+        item.innerHTML = `
+          <div style="display:flex; justify-content:space-between; color:#2563eb; font-weight:700; margin-bottom:2px;">
+            <span>${escapeHTML(n.author)}</span>
+            <span style="color:#64748b; font-weight:normal;">${formattedDate}</span>
+          </div>
+          <div style="color:#334155; white-space:pre-wrap;">${escapeHTML(n.text)}</div>
+        `;
+        pdfNotes.appendChild(item);
+      });
+    } else {
+      pdfNotes.innerHTML = '<div style="font-size:8.5pt; color:#64748b; text-align:center; padding:8px;">Sin anotaciones registradas.</div>';
+    }
+
+    document.getElementById('pdfGanttId').textContent = p.id;
+    const ganttContainer = document.getElementById('pdfGanttContainer');
+    ganttContainer.innerHTML = '<div style="text-align:center; padding:15px; color:#64748b;">Cargando planificación...</div>';
+
+    let hasPlanData = false;
+
+    try {
+      const planRes = await fetch(`${API_BASE_URL}/project-plan/${p.id}`);
+      const planData = await planRes.json();
+
+      if (planData.success && Array.isArray(planData.plan) && planData.plan.length > 0) {
+        hasPlanData = true;
+        let htmlGantt = '';
+        planData.plan.forEach(sec => {
+          htmlGantt += `
+            <div style="font-weight:800; font-size:9.5pt; color:#2563eb; background:#f1f5f9; padding:6px; border:1px solid #cbd5e1; margin-top:10px;">
+              ${escapeHTML(sec.titulo)} ${sec.terminado ? '(TERMINADO)' : '(EN PROCESO)'}
+            </div>
+            <table class="pdf-gantt-table">
+              <thead>
+                <tr>
+                  <th style="width:90px;">F. INICIO</th>
+                  <th style="width:90px;">F. TÉRMINO</th>
+                  <th>ACTIVIDAD / HITOS PLANIFICADOS</th>
+                  <th style="width:160px;">RESPONSABLE</th>
+                  <th style="width:200px;">OBSERVACIONES / NOTAS</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          if (Array.isArray(sec.tareas) && sec.tareas.length > 0) {
+            sec.tareas.forEach(t => {
+              htmlGantt += `
+                <tr>
+                  <td>${t.start || '-'}</td>
+                  <td>${t.end || '-'}</td>
+                  <td><strong>${escapeHTML(t.act || '-')}</strong></td>
+                  <td>${escapeHTML(t.resp || '-')}</td>
+                  <td>${escapeHTML(t.obs || '-')}</td>
+                </tr>
+              `;
+            });
+          } else {
+            htmlGantt += '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Sin tareas registradas en esta sección.</td></tr>';
+          }
+
+          htmlGantt += '</tbody></table>';
+        });
+        ganttContainer.innerHTML = htmlGantt;
+      } else {
+        ganttContainer.innerHTML = '<div style="text-align:center; padding:15px; color:#64748b; border:1px dashed #cbd5e1;">Sin registro de planificación o carta Gantt para este proyecto.</div>';
+      }
+
+      const elemPage1 = document.getElementById('pdfPrintTemplate');
+      const canvas1 = await html2canvas(elemPage1, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const imgData1 = canvas1.toDataURL('image/png');
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidthV = 210;
+      const imgHeightV = (canvas1.height * imgWidthV) / canvas1.width;
+
+      pdf.addImage(imgData1, 'PNG', 0, 0, imgWidthV, imgHeightV);
+
+      if (hasPlanData) {
+        const elemPage2 = document.getElementById('pdfPrintGanttTemplate');
+        const canvas2 = await html2canvas(elemPage2, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+        const imgData2 = canvas2.toDataURL('image/png');
+
+        pdf.addPage('a4', 'l');
+        const imgWidthH = 297;
+        const imgHeightH = (canvas2.height * imgWidthH) / canvas2.width;
+
+        pdf.addImage(imgData2, 'PNG', 0, 0, imgWidthH, imgHeightH);
+      }
+
+      pdf.save(`Informe_Proyecto_${p.id}.pdf`);
+
+    } catch (err) {
+      alert('Error al generar el reporte PDF: ' + err.message);
+    }
+  }
+
+  function visualizarCosteoProcesado() {
+    let pdfUrl = currentCostingPdfData;
+    if (!pdfUrl && currentProjectCode && onlineProjectsDB[currentProjectCode] && onlineProjectsDB[currentProjectCode].costingPdf) {
+      pdfUrl = onlineProjectsDB[currentProjectCode].costingPdf;
+    }
+    if (!pdfUrl) return alert("Sin PDF de costeo.");
+
+    const viewerModal = document.getElementById('costingViewerModal');
+    document.getElementById('pdfViewerFrame').src = pdfUrl;
+    viewerModal.classList.remove('hidden');
+  }
+
+  function cerrarVisualizadorCosteo() {
+    document.getElementById('pdfViewerFrame').src = '';
+    document.getElementById('costingViewerModal').classList.add('hidden');
+  }
+
+  function irAAgregarAnotacionDirecta() {
+    if (!currentProjectCode) return alert('Seleccione un proyecto primero.');
+    switchTab('anotacion');
+    document.getElementById('noteSearchCriteria').value = 'id';
+    document.getElementById('noteSearchId').value = currentProjectCode;
+    validarNotaDeVenta();
+  }
+
+  function buscarProyecto() {
+    const criteria = document.getElementById('searchCriteria').value;
+    const term = document.getElementById('searchInput').value.trim().toUpperCase();
+    if (!term) return;
+
+    const allProjects = Object.values(onlineProjectsDB);
+    let matches = [];
+    if (criteria === 'client') matches = allProjects.filter(p => p.client && p.client.toUpperCase().includes(term));
+    else if (criteria === 'id') matches = allProjects.filter(p => p.id && p.id.toUpperCase().includes(term));
+
+    if (matches.length > 0) renderProyectoUnico(matches[0]);
+    else alert('No se encontraron proyectos.');
+  }
+
+  function validarNotaDeVenta() {
+    const criteria = document.getElementById('noteSearchCriteria').value;
+    const term = document.getElementById('noteSearchId').value.trim().toUpperCase();
+    const alertBox = document.getElementById('validationAlert');
+    if (!term) return;
+
+    const allProjects = Object.values(onlineProjectsDB);
+    let matches = [];
+    if (criteria === 'client') matches = allProjects.filter(p => p.client && p.client.toUpperCase().includes(term));
+    else if (criteria === 'id') matches = allProjects.filter(p => p.id && p.id.toUpperCase().includes(term));
+
+    if (matches.length > 0) {
+      verifiedNoteProjectCode = matches[0].id;
+      alertBox.classList.remove('hidden', 'danger'); alertBox.classList.add('good');
+      alertBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> Proyecto Seleccionado: <strong>${matches[0].name}</strong> (${matches[0].id}).`;
+      document.getElementById('noteForm').classList.remove('disabled-area');
+      document.getElementById('submitNoteBtn').disabled = false;
+      renderNotas(matches[0].notes, 'tabNotesTimeline');
+      document.getElementById('existingNotesContainer').classList.remove('hidden');
+    } else {
+      alertBox.classList.remove('hidden', 'good'); alertBox.classList.add('danger');
+      alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> No existe el proyecto buscado.`;
+    }
+  }
+
+  function logout() {
+    sessionStorage.clear();
+    location.reload();
+  }
+
+  function getBadgeClass(status) {
+    switch (status) {
+      case 'Planificación': return 'badge-plan';
+      case 'En Proceso': return 'badge-proceso';
+      case 'Completado': return 'badge-completado';
+      case 'Pausado': return 'badge-pausado';
+      default: return 'badge-proceso';
+    }
+  }
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+  }
+</script>
+</body>
+</html>
